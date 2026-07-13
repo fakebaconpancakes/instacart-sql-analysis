@@ -142,3 +142,60 @@ with tab3:
             
             **Conclusion:** Most shoppers are 'Casual Shoppers' (approx. 129.7k), while the smallest group is 'At Risk' customers (approx. 9k). *It is worth noting that these groupings are based on domain logic and have not been tested statistically. In a future iteration, an ANOVA test should be conducted to prove the significance of the variance between these groups.*
             """)
+        
+    st.write("---") 
+    st.header("Q2 - Product Affinity")
+    st.write("Identifying 'Staple' products that drive habitual app usage.")
+
+    if st.button("Run Product Affinity Analysis"):
+        
+        with st.spinner("Fetching pre-aggregated reorder rates..."):
+            sql_affinity = read_sql_file("product_affinity.sql")
+            df_affinity = execute_query(sql_affinity)
+        
+        st.dataframe(df_affinity)
+        fig_affinity = px.bar(
+            df_affinity, 
+            x="reorder_rate_percent", 
+            y="product_name", 
+            orientation='h', 
+            title="Top 15 Staple Products by Reorder Rate",
+            labels={"reorder_rate_percent": "Reorder Rate (%)", "product_name": "Product"},
+            color="reorder_rate_percent",
+            color_continuous_scale="Viridis",
+            text_auto=True
+        )
+        fig_affinity.update_layout(yaxis={'categoryorder':'total ascending'}) 
+        
+        st.plotly_chart(fig_affinity)
+        
+        with st.expander("Explanation & Thought Process"):
+            st.markdown("""
+            To answer the second business question, I needed to identify which products act as "anchors" for the platform. 
+            
+            Data Engineering & Performance Tuning:
+            Initially, calculating reorder rates required joining and aggregating millions of rows in real-time, which caused severe dashboard latency. To optimize performance, I engineered a data pipeline step. I created a 'Materialized View' (pre-aggregated table) directly in SQLite to compute the baseline purchase counts and reorders beforehand. This shifted the compute load off the app and reduced query execution time to milliseconds.
+            
+            Methodology:
+            * I calculated the 'Reorder Rate' by dividing total reorders by total purchases using the pre-aggregated data.
+            * I applied a `WHERE total_purchases > 25000` filter to exclude niche items that were only bought a few times, ensuring statistical significance.
+            
+            Business Value: Products with extremely high reorder rates (like dairy, water, or fresh produce) are habit-forming. Instacart's marketing team can use these specific items as loss-leaders in promotional emails to guarantee high conversion rates and drive users back into the app.
+            """)
+            
+        with st.expander("View the SQL & Pipeline Logic"):
+            st.write("### 1. Data Pre-Processing")
+            st.write("This query was run directly in the database to pre-aggregate the rows, acting as a Materialized View to optimize app performance:")
+            st.code("""
+CREATE TABLE product_reorder_stats AS 
+SELECT 
+    product_id, 
+    COUNT(*) AS total_purchases, 
+    SUM(reordered) AS total_reorders
+FROM order_products_prior
+GROUP BY product_id;
+            """, language="sql")
+            
+            st.write("### 2. Production App Query")
+            st.write("This query is the main process after the pre-aggregation:")
+            st.code(sql_affinity, language="sql")
