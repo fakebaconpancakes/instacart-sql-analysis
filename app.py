@@ -9,14 +9,14 @@ st.title("Instacart Executive Dashboard")
 
 tab1, tab2, tab3 = st.tabs(["Overview", "Basic Analysis", "Business Discussion"])
 
-st.sidebar.title("Table of Contents")
-st.sidebar.markdown("[1. Problem Statement](#ProblemStatement)", unsafe_allow_html=True)
-st.sidebar.markdown("[2. Business Question](#BusinessQuestion)", unsafe_allow_html=True)
-st.sidebar.markdown("[3. Database Preview](#DatabasePreview)", unsafe_allow_html=True)
 
 with tab1:
+    
     st.header("Introduction")
+    st.image("Figures\instacart.png")
     st.write('**Instacart** is a grocery delivery and pickup service. Users can select items from local grocery stores through the Instacart app or website and then either have them delivered to their doorstep by a personal shopper or prepared for pickup at the store.')
+
+    
 
     st.header("Problem Statement")
     st.write("Grocery delivery is a highly competitive, low-margin business. To remain profitable, Instacart must maximize customer retention (preventing churn) and increase the average basket size per order. However, without clear visibility into user purchasing habits and product affinities, marketing and operations teams cannot effectively target promotions or anticipate inventory demand.")
@@ -169,21 +169,7 @@ with tab3:
         
         st.plotly_chart(fig_affinity)
         
-        with st.expander("Explanation & Thought Process"):
-            st.markdown("""
-            To answer the second business question, I needed to identify which products act as "anchors" for the platform. 
-            
-            Data Engineering & Performance Tuning:
-            Initially, calculating reorder rates required joining and aggregating millions of rows in real-time, which caused severe dashboard latency. To optimize performance, I engineered a data pipeline step. I created a 'Materialized View' (pre-aggregated table) directly in SQLite to compute the baseline purchase counts and reorders beforehand. This shifted the compute load off the app and reduced query execution time to milliseconds.
-            
-            Methodology:
-            * I calculated the 'Reorder Rate' by dividing total reorders by total purchases using the pre-aggregated data.
-            * I applied a `WHERE total_purchases > 25000` filter to exclude niche items that were only bought a few times, ensuring statistical significance.
-            
-            Business Value: Products with extremely high reorder rates (like dairy, water, or fresh produce) are habit-forming. Instacart's marketing team can use these specific items as loss-leaders in promotional emails to guarantee high conversion rates and drive users back into the app.
-            """)
-            
-        with st.expander("View the SQL & Pipeline Logic"):
+        with st.expander("View the SQL Logic"):
             st.write("### 1. Data Pre-Processing")
             st.write("This query was run directly in the database to pre-aggregate the rows, acting as a Materialized View to optimize app performance:")
             st.code("""
@@ -199,3 +185,69 @@ GROUP BY product_id;
             st.write("### 2. Production App Query")
             st.write("This query is the main process after the pre-aggregation:")
             st.code(sql_affinity, language="sql")
+
+        with st.expander("Explanation & Thought Process"):
+            st.markdown("""
+            To answer the second business question, I needed to identify which products act as "anchors" for the platform. 
+            
+            Data Engineering & Performance Tuning:
+            Initially, calculating reorder rates required joining and aggregating millions of rows in real-time, which caused severe dashboard latency. To optimize performance, I engineered a data pipeline step. I created a 'Materialized View' (pre-aggregated table) directly in SQLite to compute the baseline purchase counts and reorders beforehand. This shifted the compute load off the app and reduced query execution time to milliseconds.
+            
+            Methodology:
+            * I calculated the 'Reorder Rate' by dividing total reorders by total purchases using the pre-aggregated data.
+            * I applied a `WHERE total_purchases > 25000` filter to exclude niche items that were only bought a few times, ensuring statistical significance.
+            
+            Business Value: Products with extremely high reorder rates (like dairy, water, or fresh produce) are habit-forming. Instacart's marketing team can use these specific items as loss-leaders in promotional emails to guarantee high conversion rates and drive users back into the app.
+            """)
+
+    st.write("---") 
+    st.header("Q3 - Operational Demand Forecasting")
+    st.write("Mapping peak shopping hours to optimize delivery logistics and platform stability.")
+
+    if st.button("Run Demand Analysis"):
+        
+        with st.spinner("Calculating hourly order volume..."):
+            start_time = time.perf_counter()
+            
+            sql_demand = read_sql_file("hourly_demand.sql")
+            df_demand = execute_query(sql_demand)
+            
+            end_time = time.perf_counter()
+        
+        # Create a Line Chart to show the demand curve
+        fig_demand = px.line(
+            df_demand, 
+            x="order_hour_of_day", 
+            y="total_orders", 
+            title="Instacart Order Volume by Hour of Day",
+            labels={"order_hour_of_day": "Hour of Day (0-23)", "total_orders": "Total Orders"},
+            markers=True
+        )
+        
+        # Force the X-axis to show every single hour clearly
+        fig_demand.update_layout(xaxis=dict(tickmode='linear', tick0=0, dtick=1))
+        
+        st.plotly_chart(fig_demand)
+
+        st.write("---")
+        st.subheader("Weekly Demand Trend")
+        
+        with st.spinner("Calculating daily order volume..."):
+            sql_daily = read_sql_file("daily_demand.sql")
+            df_daily = execute_query(sql_daily)
+            
+        # Create a Bar Chart for Day of Week
+        fig_daily = px.bar(
+            df_daily, 
+            x="order_dow", 
+            y="total_orders", 
+            title="Instacart Order Volume by Day of Week",
+            labels={"order_dow": "Day of Week (0-6)", "total_orders": "Total Orders"},
+            color="total_orders",
+            color_continuous_scale="Blues"
+        )
+        
+        # Force X-axis to show discrete days 0-6
+        fig_daily.update_layout(xaxis=dict(tickmode='linear', tick0=0, dtick=1))
+        
+        st.plotly_chart(fig_daily)
