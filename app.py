@@ -13,7 +13,7 @@ tab1, tab2, tab3 = st.tabs(["Overview", "Basic Analysis", "Business Discussion"]
 with tab1:
     
     st.header("Introduction")
-    st.image("Figures\instacart.png")
+    st.image("Figures\\instacart.png")
     st.write('**Instacart** is a grocery delivery and pickup service. Users can select items from local grocery stores through the Instacart app or website and then either have them delivered to their doorstep by a personal shopper or prepared for pickup at the store.')
 
     
@@ -251,3 +251,4 @@ GROUP BY product_id;
         fig_daily.update_layout(xaxis=dict(tickmode='linear', tick0=0, dtick=1))
         
         st.plotly_chart(fig_daily)
+
