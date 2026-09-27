@@ -50,6 +50,8 @@ with tab1:
     st.text('Provides information about individual orders and customers.')
     df_preview = execute_query("SELECT * FROM orders LIMIT 5")
     st.dataframe(df_preview)
+    with st.expander("⚠️ Warning"):
+        st.warning("We will only be using the **order_products__prior** table as our **Orders** table. The **order_products__train** table is not used in this analysis as it is meant for training machine learning models and does not contain any additional information that is relevant to our analysis.")
 
     st.subheader("Products Table")
     st.text('Contains details about products, including aisle and department IDs.')
@@ -58,50 +60,105 @@ with tab1:
 
 
 with tab2:
-    st.header("Top Products Analysis")
-    st.markdown("> Results are taken from the SQL output, however it is hardcoded since the runtime process takes too long..")
-    if st.button("Run Top Products Analysis"):
-        with st.spinner("Crunching the numbers and running SQL..."):
-            sql = read_sql_file("top_products.sql")
-            # results = execute_query(sql)
-            time.sleep(1)
+    st.warning("The results were obtained from the SQL output but hardcoded due to the long runtime of the query.")
+    st.subheader("1. What are the top 10 products that are most commonly added to the cart first?")
+    top_products_sql = read_sql_file("top_products.sql")
+    # if st.button("Run Top Products Analysis"):
+    #     with st.spinner("Crunching the numbers and running SQL..."):
+    #         # results = execute_query(sql)
+    #         time.sleep(1)
         # Hard-Coded Execution since runtime takes too long, please remember to fix this
-        st.write("### Top 10 Products")
-        top_products = pd.DataFrame({
-            "product_name": [
-                "Banana",
+
+    top_products = pd.DataFrame({
+        "product_name": [
+            "Banana",
+            "Bag of Organic Bananas",
+            "Organic Strawberries",
+            "Organic Baby Spinach",
+            "Organic Hass Avocado",
+            "Organic Avocado",
+            "Large Lemon",
+            "Strawberries",
+            "Limes",
+            "Organic Whole Milk"
+        ],
+        "total_orders": [
+            472565,
+            379450,
+            264683,
+            241921,
+            213584,
+            176815,
+            152657,
+            142951,
+            140627,
+            137905
+        ]
+    })
+
+    st.dataframe(
+        top_products,
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    with st.expander("View SQL Logic"):
+        st.code(top_products_sql, language="sql")
+
+    st.subheader("2. What are the top 10 product pairs that are most frequently purchased together?")
+    sql_pairs = read_sql_file("product_pairs.sql")
+    # if st.button("Run Product Pair Analysis"):
+    #     with st.spinner("Crunching the numbers and running SQL..."):
+    #         # results = execute_query(sql_pairs)
+    #         time.sleep(1)
+    #     # Hard-Coded Execution since runtime takes too long, please remember to fix this
+    top_product_pairs = pd.DataFrame({
+        "product_1": [
+                "Bag of Organic Bananas",
                 "Bag of Organic Bananas",
                 "Organic Strawberries",
+                "Banana",
                 "Organic Baby Spinach",
-                "Organic Hass Avocado",
-                "Organic Avocado",
-                "Large Lemon",
+                "Bag of Organic Bananas",
                 "Strawberries",
-                "Limes",
-                "Organic Whole Milk"
-            ],
-            "total_orders": [
-                472565,
-                379450,
-                264683,
-                241921,
-                213584,
-                176815,
-                152657,
-                142951,
-                140627,
-                137905
-            ]
-        })
+                "Banana",
+                "Organic Strawberries",
+                "Bag of Organic Bananas",
+        ],
+        "product_2": [
+            "Organic Hass Avocado",
+            "Organic Strawberries",
+            "Banana",
+            "Organic Avocado",
+            "Banana",
+            "Organic Baby Spinach",
+            "Banana",
+            "Large Lemon",
+            "Organic Hass Avocado",
+            "Organic Raspberries"
+        ],
+        "times_bought_together": [
+            62341,
+            61628,
+            56156,
+            53395,
+            51395,
+            50372,
+            41232,
+            40880,
+            40794,
+            40503
+        ]
+    })
 
-        st.dataframe(
-            top_products,
-            use_container_width=True,
-            hide_index=True
-        )
-        
-        with st.expander("View SQL Logic"):
-            st.code(sql, language="sql")
+    st.dataframe(
+        top_product_pairs,
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    with st.expander("View SQL Logic"):
+        st.code(sql_pairs, language="sql")
     
 with tab3:
     # Answering Question 1
@@ -142,14 +199,15 @@ with tab3:
             
             **Conclusion:** Most shoppers are 'Casual Shoppers' (approx. 129.7k), while the smallest group is 'At Risk' customers (approx. 9k). *It is worth noting that these groupings are based on domain logic and have not been tested statistically. In a future iteration, an ANOVA test should be conducted to prove the significance of the variance between these groups.*
             """)
-        
+
+    # Answering Question 2
     st.write("---") 
     st.header("Q2 - Product Affinity")
     st.write("Identifying 'Staple' products that drive habitual app usage.")
 
     if st.button("Run Product Affinity Analysis"):
         
-        with st.spinner("Fetching pre-aggregated reorder rates..."):
+        with st.spinner("This may take some time..."):
             sql_affinity = read_sql_file("product_affinity.sql")
             df_affinity = execute_query(sql_affinity)
         
@@ -170,28 +228,12 @@ with tab3:
         st.plotly_chart(fig_affinity)
         
         with st.expander("View the SQL Logic"):
-            st.write("### 1. Data Pre-Processing")
-            st.write("This query was run directly in the database to pre-aggregate the rows, acting as a Materialized View to optimize app performance:")
-            st.code("""
-CREATE TABLE product_reorder_stats AS 
-SELECT 
-    product_id, 
-    COUNT(*) AS total_purchases, 
-    SUM(reordered) AS total_reorders
-FROM order_products_prior
-GROUP BY product_id;
-            """, language="sql")
-            
-            st.write("### 2. Production App Query")
-            st.write("This query is the main process after the pre-aggregation:")
+            st.write("Production App Query")
             st.code(sql_affinity, language="sql")
 
         with st.expander("Explanation & Thought Process"):
             st.markdown("""
             To answer the second business question, I needed to identify which products act as "anchors" for the platform. 
-            
-            Data Engineering & Performance Tuning:
-            Initially, calculating reorder rates required joining and aggregating millions of rows in real-time, which caused severe dashboard latency. To optimize performance, I engineered a data pipeline step. I created a 'Materialized View' (pre-aggregated table) directly in SQLite to compute the baseline purchase counts and reorders beforehand. This shifted the compute load off the app and reduced query execution time to milliseconds.
             
             Methodology:
             * I calculated the 'Reorder Rate' by dividing total reorders by total purchases using the pre-aggregated data.
@@ -214,7 +256,6 @@ GROUP BY product_id;
             
             end_time = time.perf_counter()
         
-        # Create a Line Chart to show the demand curve
         fig_demand = px.line(
             df_demand, 
             x="order_hour_of_day", 
@@ -224,7 +265,6 @@ GROUP BY product_id;
             markers=True
         )
         
-        # Force the X-axis to show every single hour clearly
         fig_demand.update_layout(xaxis=dict(tickmode='linear', tick0=0, dtick=1))
         
         st.plotly_chart(fig_demand)
@@ -236,7 +276,6 @@ GROUP BY product_id;
             sql_daily = read_sql_file("daily_demand.sql")
             df_daily = execute_query(sql_daily)
             
-        # Create a Bar Chart for Day of Week
         fig_daily = px.bar(
             df_daily, 
             x="order_dow", 
@@ -247,8 +286,25 @@ GROUP BY product_id;
             color_continuous_scale="Blues"
         )
         
-        # Force X-axis to show discrete days 0-6
         fig_daily.update_layout(xaxis=dict(tickmode='linear', tick0=0, dtick=1))
         
         st.plotly_chart(fig_daily)
+
+        with st.expander("Explanation"):
+            st.markdown(
+                """
+                    **Intraday Demand Curve (Hourly Trend)**
+                    * Off-Peak Window (12 AM - 6 AM): Volume drops to its daily floor (~5k - 30k orders/hr), opening the optimal operational window for dark-store restocking, inventory audits, and batch maintenance.
+                    * Morning Surge (7 AM - 9 AM): Demand ramps up sharply from 30k to over 250k orders/hr as same-day fulfillment requests surge.
+                    * Peak Demand Plateau (10 AM - 4 PM): Volume sustains its maximum plateau between ~272k and ~288k orders/hr. Shopper allocations and driver dispatch must be capped at maximum density during this 6-hour core window to protect delivery SLAs.
+                    * Evening Taper (5 PM - 11 PM): Activity steadily winds down from ~228k to 40k as daily fulfillment closes out.
+
+                    **Day-of-Week Load Distribution (Weekly Trend)**
+                    * Weekend Peak (Days 0 & 1): Days 0 and 1 (typically Sunday and Monday in the Instacart schema) drive the highest weekly volume, hitting ~600k and ~580k orders respectively.
+                    * Mid-Week Baseline (Days 2 - 6): Demand stabilizes at a consistent baseline of 420k - 460k orders/day.
+                    * Actionable Takeaway: Fulfillment centers and partner retail locations require 30-35% higher shopper capacity on Days 0 and 1 compared to mid-week baseline days to prevent order backlogs.
+
+                """
+            )
+
 
