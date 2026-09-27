@@ -6,6 +6,8 @@ An end-to-end, cloud-connected analytics project that combines **SQL**, **Python
 
 The project is designed as an analytics product rather than a collection of isolated queries: a 32M+ row local dataset is prepared and uploaded to a cloud database, business questions are translated into reusable SQL, and the results are surfaced through an executive-facing dashboard with interactive charts and methodology notes.
 
+**View the Live Interactive Dashboard:** [https://abtesting-advertising-experimentation.streamlit.app/](https://mbxnc26c75dneuj8yrcuog.streamlit.app/)
+
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![SQL](https://img.shields.io/badge/SQL-Analytics-4479A1?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Streamlit](https://img.shields.io/badge/App-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
