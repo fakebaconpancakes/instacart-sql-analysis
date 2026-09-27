@@ -281,9 +281,6 @@ This project is intentionally transparent about what it does and does not measur
 - A production version would calculate all dashboard metrics at runtime, add query-result caching, and include automated data-quality checks.
 - Future work could add RFM scoring, cohort retention, basket-size analysis, recommendation evaluation, and a proper deployment workflow with environment-based configuration.
 
-## Resume-ready summary
-
-> Built an end-to-end Instacart e-commerce analytics platform using Python, SQL, DuckDB, MotherDuck, and Streamlit; developed reusable queries for customer segmentation, product affinity, co-purchase analysis, and hourly/daily demand profiling; delivered an interactive executive dashboard translating transaction data into retention, merchandising, and fulfillment insights.
 
 ## License and dataset note
 
